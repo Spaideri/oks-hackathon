@@ -130,10 +130,7 @@ const clientConfig = merge({}, config, {
       new webpack.optimize.DedupePlugin(),
       new webpack.optimize.UglifyJsPlugin({
         compress: {
-          // jscs:disable requireCamelCaseOrUpperCaseIdentifiers
           screw_ie8: true,
-
-          // jscs:enable requireCamelCaseOrUpperCaseIdentifiers
           warnings: VERBOSE,
         },
       }),

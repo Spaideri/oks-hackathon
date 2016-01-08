@@ -21,10 +21,10 @@ class Header extends Component {
       <div className={s.root}>
         <div className={s.container}>
           <Navigation className={s.nav} />
-          <Link className={s.brand} to="/">
+          <a className={s.brand} href="/" onClick={Link.handleClick}>
             <img src={require('./logo-small.png')} width="38" height="38" alt="React" />
             <span className={s.brandTxt}>Your Company</span>
-          </Link>
+          </a>
           <div className={s.banner}>
             <h1 className={s.bannerTitle}>React</h1>
             <p className={s.bannerDesc}>Complex web apps made easy</p>
