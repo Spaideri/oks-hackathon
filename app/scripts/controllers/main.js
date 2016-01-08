@@ -9,38 +9,61 @@
  */
 angular.module('oksApp')
 
-  .factory('LocationResource', function($http) {
-    function getLocations() {
-      return $http.get('/foo');
+  .factory('LocationResource', function($http, $q) {
+
+    var initializePromise;
+
+    function initialize() {
+      if(initializePromise === undefined) {
+        initializePromise = $http.get('/api/init');
+      }
+      return initializePromise;
     }
 
+    function updateLocation(lat, lon) {
+      var deferred = $q.defer();
+      initialize().then(function initializeSuccess(data) {
+        var locationObject = {
+          uuid: data.data.uuid,
+          location: {
+            lat: lat,
+            lon: lon
+          }
+        };
+        $http.post('/api/location', locationObject).then(function locationSuccess(data) {
+          deferred.resolve(data);
+        });
+      });
+      return deferred.promise;
+    }
+
+    initialize();
+
     return {
-      getLocations: getLocations
+      updateLocation: updateLocation
     };
 
   })
 
-  .controller('MainCtrl', function ($scope, LocationResource) {
-    console.log('mainc');
+  .controller('MainCtrl', function ($scope, $timeout, LocationResource) {
+    
     this.awesomeThings = [
       'HTML5 Boilerplate',
       'AngularJS',
       'Karma'
     ];
 
-    console.log('foob', LocationResource);
-
     map = new L.Map('map');
 
     // code taken from leaflet's documentation
-	// create the tile layer with correct attribution
-	var osmUrl='http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-	var osmAttrib='Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
-	var osm = new L.TileLayer(osmUrl, {minZoom: 8, maxZoom: 20, attribution: osmAttrib});
+    // create the tile layer with correct attribution
+    var osmUrl='http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    var osmAttrib='Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
+    var osm = new L.TileLayer(osmUrl, {minZoom: 8, maxZoom: 20, attribution: osmAttrib});
 
-	// start the map in Helsinki
-	map.setView(new L.LatLng(60.1708, 24.9375), 14);
-	map.addLayer(osm);
+    // start the map in Helsinki
+    map.setView(new L.LatLng(60.1708, 24.9375), 14);
+    map.addLayer(osm);
 
     // add per-user markers & popups
     var markerSimo = L.marker([60.1715, 24.9300]).addTo(map);
@@ -69,5 +92,18 @@ angular.module('oksApp')
     }
 
     $scope.foo = 'bar';
+
+    function updateLocation() {
+      $timeout(function() {
+        navigator.geolocation.getCurrentPosition(function (position) {
+          LocationResource.updateLocation(position.coords.latitude, position.coords.longitude).then(function updateSuccess(data) {
+            console.log('updateSuccess', data);
+          });
+        });
+        updateLocation();
+      }, 3000);
+    }
+
+    updateLocation();
 
   });
