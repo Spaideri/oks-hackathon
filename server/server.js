@@ -13,7 +13,9 @@ app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
 app.post('/api/location', function(req, res) {
+  console.log(req.body);
   locations[req.body.uuid] = req.body.location;
+
   res.send(locations);
 });
 

@@ -23,6 +23,7 @@ angular.module('oksApp')
     function updateLocation(lat, lon) {
       var deferred = $q.defer();
       initialize().then(function initializeSuccess(data) {
+
         var locationObject = {
           uuid: data.data.uuid,
           location: {
@@ -30,8 +31,12 @@ angular.module('oksApp')
             lon: lon
           }
         };
-        $http.post('/api/location', locationObject).then(function locationSuccess(data) {
-          deferred.resolve(data);
+        $http.post('/api/location', locationObject).then(function locationSuccess(locationData) {
+          var locationData = {
+            uuid: data.data.uuid,
+            data: locationData
+          };
+          deferred.resolve(locationData);
         });
       });
       return deferred.promise;
@@ -53,7 +58,7 @@ angular.module('oksApp')
       'Karma'
     ];
 
-    map = new L.Map('map');
+    var map = new L.Map('map');
 
     // code taken from leaflet's documentation
     // create the tile layer with correct attribution
@@ -65,39 +70,44 @@ angular.module('oksApp')
     map.setView(new L.LatLng(60.1708, 24.9375), 14);
     map.addLayer(osm);
 
-    // add per-user markers & popups
-    var markerSimo = L.marker([60.1715, 24.9300]).addTo(map);
-    var markerOsmo = L.marker([60.1711, 24.9316]).addTo(map);
-    markerSimo.bindPopup("Simo - paikalla 2:35");
-    markerOsmo.bindPopup("Osmo-Inkeri - paikalla 16 sekuntia");
-
-    LocationResource.getLocations().then(function getLocationsSuccess(data) {
-      console.log('data', data);
-    });
-
-    // Get my location and add it as a dircle
-    if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-          console.log("success: " + position.coords.latitude, position.coords.longitude);
-          var circleMe = L.circle([position.coords.latitude, position.coords.longitude], 100, {
-              color: 'red',
-              fillColor: '#f03',
-              fillOpacity: 0.5
-          }).addTo(map);
-
-          circleMe.bindPopup("Minä - paikalla nyt");
-        });
-    } else {
-        console.log("no geolocation!");
-    }
-
-    $scope.foo = 'bar';
+    var circleMe;
+    var others = {};
 
     function updateLocation() {
       $timeout(function() {
         navigator.geolocation.getCurrentPosition(function (position) {
-          LocationResource.updateLocation(position.coords.latitude, position.coords.longitude).then(function updateSuccess(data) {
-            console.log('updateSuccess', data);
+          var xoff = (Math.floor(Math.random() * 10) - 5) / 1000;
+          var yoff = (Math.floor(Math.random() * 10) - 5) / 1000;
+
+          var mylat = position.coords.latitude + xoff;
+          var mylon = position.coords.longitude + yoff;
+
+          if(circleMe === undefined) {
+            circleMe = L.circle([mylat, mylon], 100, {
+              color: 'red',
+              fillColor: '#f03',
+              fillOpacity: 0.5
+            }).addTo(map);
+          }
+          
+          var newLatLng = new L.LatLng(mylat, mylon);
+          circleMe.setLatLng(newLatLng); 
+
+          circleMe.bindPopup("Minä - paikalla nyt");
+
+          LocationResource.updateLocation(mylat, mylon).then(function updateSuccess(data) {
+            _.forOwn(data.data.data, function(value, key){
+              if(data.uuid !== key){
+                if(others[key] === undefined) {
+                  others[key] = L.marker([value.lat, value.lon]).addTo(map);
+                  others[key].bindPopup(key);
+                } else {
+                  var newLatLng = new L.LatLng(value.lat, value.lon);
+                  others[key].setLatLng(newLatLng);
+                }
+              }
+
+            });
           });
         });
         updateLocation();
