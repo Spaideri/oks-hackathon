@@ -6,8 +6,10 @@
 // 'test/spec/{,*/}*.js'
 // use this if you want to recursively match all subfolders:
 // 'test/spec/**/*.js'
+
 var httpProxy = require('http-proxy');
 var urlUtil = require('url');
+var _ = require('lodash');
 
 var proxy = httpProxy.createProxyServer({
   target: 'http://localhost:3000/'
@@ -109,7 +111,7 @@ module.exports = function (grunt) {
                 connect.static('./app/styles')
               ),
               connect.static(appConfig.app),
-              
+              proxyMiddleware
             ];
           }
         }
